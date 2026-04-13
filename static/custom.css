@@ -1,0 +1,58 @@
+body {
+    background: #f5f7fb;
+}
+
+.hero-card,
+.section-card,
+.metric-card {
+    background: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.hero-card {
+    background: linear-gradient(135deg, #ffffff 0%, #eef6ff 100%);
+}
+
+.metric-card {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.metric-title {
+    font-size: 0.95rem;
+    color: #64748b;
+    margin-bottom: 0.4rem;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #0f172a;
+}
+
+h1, h3 {
+    color: #0f172a;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #334155;
+}
+
+.formula-list li {
+    margin-bottom: 0.65rem;
+}
+
+.sticky-top-approx {
+    position: sticky;
+    top: 1rem;
+}
+
+.table > :not(caption) > * > * {
+    padding: 0.9rem 0.75rem;
+}

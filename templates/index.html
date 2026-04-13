@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Simulador de baterías y paneles solares</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='custom.css') }}" rel="stylesheet">
+</head>
+<body>
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="hero-card p-4">
+                <h1 class="mb-2">Simulador de baterías, cargas y paneles solares</h1>
+                <p class="mb-1">Configura bancos de baterías, electrodomésticos y paneles. La app calcula autonomía instantánea, consumo diario, balance solar y duración estimada del sistema.</p>
+                <p class="small text-secondary mb-0">Modelo práctico: útil para estimación técnica preliminar. En terreno, la autonomía real puede variar por temperatura, corriente de descarga, pérdidas adicionales, factor de potencia y edad de la batería.</p>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" id="sim-form">
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="section-card p-3 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="mb-0">Baterías</h3>
+                        <button class="btn btn-primary btn-sm" type="button" onclick="addRow('battery')">Agregar batería</button>
+                    </div>
+                    <div id="battery-rows">
+                        {% for row in payload.batteries %}
+                        <div class="row g-2 align-items-end dynamic-row mb-2">
+                            <div class="col-md-4">
+                                <label class="form-label">Nombre</label>
+                                <input class="form-control" name="battery_name" value="{{ row.name }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Voltaje</label>
+                                <input class="form-control" type="number" step="0.01" name="battery_voltage" value="{{ row.voltage }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Ah</label>
+                                <input class="form-control" type="number" step="0.01" name="battery_ah" value="{{ row.ah }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Cantidad</label>
+                                <input class="form-control" type="number" step="1" min="1" name="battery_quantity" value="{{ row.quantity }}">
+                            </div>
+                            <div class="col-md-2 d-grid">
+                                <button class="btn btn-outline-danger" type="button" onclick="removeRow(this)">Quitar</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="section-card p-3 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="mb-0">Electrodomésticos / cargas</h3>
+                        <button class="btn btn-primary btn-sm" type="button" onclick="addRow('appliance')">Agregar equipo</button>
+                    </div>
+                    <div id="appliance-rows">
+                        {% for row in payload.appliances %}
+                        <div class="row g-2 align-items-end dynamic-row mb-2">
+                            <div class="col-md-4">
+                                <label class="form-label">Nombre</label>
+                                <input class="form-control" name="appliance_name" value="{{ row.name }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Potencia (W)</label>
+                                <input class="form-control" type="number" step="0.01" name="appliance_power_w" value="{{ row.power_w }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Horas/día</label>
+                                <input class="form-control" type="number" step="0.01" name="appliance_hours_per_day" value="{{ row.hours_per_day }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Cantidad</label>
+                                <input class="form-control" type="number" step="1" min="1" name="appliance_quantity" value="{{ row.quantity }}">
+                            </div>
+                            <div class="col-md-2 d-grid">
+                                <button class="btn btn-outline-danger" type="button" onclick="removeRow(this)">Quitar</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="section-card p-3 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="mb-0">Paneles solares</h3>
+                        <button class="btn btn-primary btn-sm" type="button" onclick="addRow('panel')">Agregar panel</button>
+                    </div>
+                    <div id="panel-rows">
+                        {% for row in payload.panels %}
+                        <div class="row g-2 align-items-end dynamic-row mb-2">
+                            <div class="col-md-5">
+                                <label class="form-label">Nombre</label>
+                                <input class="form-control" name="panel_name" value="{{ row.name }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Potencia (W)</label>
+                                <input class="form-control" type="number" step="0.01" name="panel_power_w" value="{{ row.power_w }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Cantidad</label>
+                                <input class="form-control" type="number" step="1" min="1" name="panel_quantity" value="{{ row.quantity }}">
+                            </div>
+                            <div class="col-md-2 d-grid">
+                                <button class="btn btn-outline-danger" type="button" onclick="removeRow(this)">Quitar</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="section-card p-3 mb-4 sticky-top-approx">
+                    <h3 class="mb-3">Parámetros del sistema</h3>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Horas solares pico / día</label>
+                            <input class="form-control" type="number" step="0.01" min="0" name="peak_sun_hours" value="{{ payload.inputs.peak_sun_hours }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Eficiencia solar (%)</label>
+                            <input class="form-control" type="number" step="0.01" min="0" max="100" name="solar_system_efficiency_pct" value="{{ payload.inputs.solar_system_efficiency_pct }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Eficiencia inversor (%)</label>
+                            <input class="form-control" type="number" step="0.01" min="0" max="100" name="inverter_efficiency_pct" value="{{ payload.inputs.inverter_efficiency_pct }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Eficiencia descarga batería (%)</label>
+                            <input class="form-control" type="number" step="0.01" min="0" max="100" name="battery_discharge_efficiency_pct" value="{{ payload.inputs.battery_discharge_efficiency_pct }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Profundidad máxima de descarga (%)</label>
+                            <input class="form-control" type="number" step="0.01" min="0" max="100" name="max_depth_of_discharge_pct" value="{{ payload.inputs.max_depth_of_discharge_pct }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Estado de carga inicial (%)</label>
+                            <input class="form-control" type="number" step="0.01" min="0" max="100" name="initial_soc_pct" value="{{ payload.inputs.initial_soc_pct }}">
+                        </div>
+                    </div>
+                    <div class="d-grid mt-3">
+                        <button class="btn btn-success btn-lg" type="submit">Calcular sistema</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-3 my-2">
+        <div class="col-md-3">
+            <div class="metric-card p-3">
+                <div class="metric-title">Banco nominal</div>
+                <div class="metric-value">{{ results.summary.total_battery_nominal_wh|num }} Wh</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card p-3">
+                <div class="metric-title">Energía útil AC</div>
+                <div class="metric-value">{{ results.summary.total_battery_ac_usable_wh|num }} Wh</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card p-3">
+                <div class="metric-title">Carga instantánea total</div>
+                <div class="metric-value">{{ results.summary.total_load_power_w|num }} W</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card p-3">
+                <div class="metric-title">Consumo diario total</div>
+                <div class="metric-value">{{ results.summary.total_load_daily_wh|num }} Wh/día</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-1">
+        <div class="col-lg-7">
+            <div class="section-card p-3 mb-4">
+                <h3 class="mb-3">Resultados principales</h3>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <tbody>
+                        <tr>
+                            <th>SOC mínimo permitido</th>
+                            <td>{{ results.summary.min_soc_pct|num }} %</td>
+                        </tr>
+                        <tr>
+                            <th>Fracción SOC utilizable</th>
+                            <td>{{ results.summary.accessible_soc_pct|num }} %</td>
+                        </tr>
+                        <tr>
+                            <th>Autonomía solo batería</th>
+                            <td>{{ results.summary.battery_only_hours|duration }}</td>
+                        </tr>
+                        <tr>
+                            <th>Autonomía solo batería según perfil diario</th>
+                            <td>
+                                {% if results.summary.battery_only_days_by_profile is not none %}
+                                    {{ (results.summary.battery_only_days_by_profile * 24)|duration }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Potencia total paneles</th>
+                            <td>{{ results.summary.total_panel_power_w|num }} W</td>
+                        </tr>
+                        <tr>
+                            <th>Generación solar útil estimada</th>
+                            <td>{{ results.summary.solar_daily_useful_wh|num }} Wh/día</td>
+                        </tr>
+                        <tr>
+                            <th>Balance diario</th>
+                            <td>{{ results.summary.daily_balance_wh|num }} Wh/día</td>
+                        </tr>
+                        <tr>
+                            <th>Estado del sistema híbrido</th>
+                            <td>{{ results.summary.solar_status }}</td>
+                        </tr>
+                        <tr>
+                            <th>Autonomía híbrida estimada</th>
+                            <td>
+                                {% if results.summary.hybrid_days is not none %}
+                                    {{ (results.summary.hybrid_days * 24)|duration }}
+                                {% else %}
+                                    Sostenible / no aplica
+                                {% endif %}
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section-card p-3 mb-4">
+                <h3 class="mb-3">Duración por equipo con el sistema actual</h3>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                        <tr>
+                            <th>Equipo</th>
+                            <th>Potencia total</th>
+                            <th>Consumo diario</th>
+                            <th>Solo batería</th>
+                            <th>Con solar</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for row in results.appliance_rows %}
+                        <tr>
+                            <td>{{ row.name }} ×{{ row.quantity }}</td>
+                            <td>{{ row.instant_power_w|num }} W</td>
+                            <td>{{ row.daily_wh|num }} Wh/día</td>
+                            <td>{{ row.battery_only_hours|duration }}</td>
+                            <td>{{ row.solar_runtime }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-secondary">No hay equipos válidos para analizar.</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="section-card p-3 mb-4">
+                <h3 class="mb-3">Fórmulas usadas</h3>
+                <ul class="mb-0 formula-list">
+                    <li><strong>Banco nominal:</strong> {{ results.formulas.battery_nominal_wh }}</li>
+                    <li><strong>Energía útil AC:</strong> {{ results.formulas.battery_usable_wh }}</li>
+                    <li><strong>Consumo diario:</strong> {{ results.formulas.load_daily_wh }}</li>
+                    <li><strong>Solar diario útil:</strong> {{ results.formulas.solar_daily_wh }}</li>
+                    <li><strong>Autonomía por horas:</strong> {{ results.formulas.battery_hours }}</li>
+                    <li><strong>Autonomía híbrida:</strong> {{ results.formulas.hybrid_days }}</li>
+                </ul>
+            </div>
+
+            <div class="section-card p-3 mb-4">
+                <h3 class="mb-3">Advertencias técnicas</h3>
+                <ul class="mb-0 formula-list">
+                    {% for warn in results.warnings %}
+                        <li>{{ warn }}</li>
+                    {% else %}
+                        <li>Sin advertencias relevantes.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="section-card p-3 mb-4">
+                <h3 class="mb-3">Lectura rápida</h3>
+                <p class="mb-2">Si quieres saber cuánto dura un equipo, mira primero la columna <strong>Solo batería</strong>. Eso supone que la energía sale desde el banco y que la carga está activa con la potencia indicada.</p>
+                <p class="mb-2">Si quieres saber si el sistema se sostiene con paneles, revisa <strong>Balance diario</strong>. Si es positivo, en promedio diario el sistema puede mantenerse.</p>
+                <p class="mb-0">Para equipos cíclicos como refrigeradores, conviene usar una potencia media realista y horas por día acordes al ciclo del compresor.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<template id="battery-template">
+    <div class="row g-2 align-items-end dynamic-row mb-2">
+        <div class="col-md-4">
+            <label class="form-label">Nombre</label>
+            <input class="form-control" name="battery_name" value="Batería nueva">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Voltaje</label>
+            <input class="form-control" type="number" step="0.01" name="battery_voltage" value="12">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Ah</label>
+            <input class="form-control" type="number" step="0.01" name="battery_ah" value="100">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Cantidad</label>
+            <input class="form-control" type="number" step="1" min="1" name="battery_quantity" value="1">
+        </div>
+        <div class="col-md-2 d-grid">
+            <button class="btn btn-outline-danger" type="button" onclick="removeRow(this)">Quitar</button>
+        </div>
+    </div>
+</template>
+
+<template id="appliance-template">
+    <div class="row g-2 align-items-end dynamic-row mb-2">
+        <div class="col-md-4">
+            <label class="form-label">Nombre</label>
+            <input class="form-control" name="appliance_name" value="Equipo nuevo">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Potencia (W)</label>
+            <input class="form-control" type="number" step="0.01" name="appliance_power_w" value="100">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Horas/día</label>
+            <input class="form-control" type="number" step="0.01" name="appliance_hours_per_day" value="8">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Cantidad</label>
+            <input class="form-control" type="number" step="1" min="1" name="appliance_quantity" value="1">
+        </div>
+        <div class="col-md-2 d-grid">
+            <button class="btn btn-outline-danger" type="button" onclick="removeRow(this)">Quitar</button>
+        </div>
+    </div>
+</template>
+
+<template id="panel-template">
+    <div class="row g-2 align-items-end dynamic-row mb-2">
+        <div class="col-md-5">
+            <label class="form-label">Nombre</label>
+            <input class="form-control" name="panel_name" value="Panel nuevo">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Potencia (W)</label>
+            <input class="form-control" type="number" step="0.01" name="panel_power_w" value="450">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Cantidad</label>
+            <input class="form-control" type="number" step="1" min="1" name="panel_quantity" value="1">
+        </div>
+        <div class="col-md-2 d-grid">
+            <button class="btn btn-outline-danger" type="button" onclick="removeRow(this)">Quitar</button>
+        </div>
+    </div>
+</template>
+
+<script>
+    let calcTimer = null;
+
+    function scheduleRecalc() {
+        clearTimeout(calcTimer);
+        calcTimer = setTimeout(() => {
+            document.getElementById('sim-form').submit();
+        }, 500);
+    }
+
+    function addRow(kind) {
+        const template = document.getElementById(`${kind}-template`);
+        const container = document.getElementById(`${kind}-rows`);
+        container.insertAdjacentHTML('beforeend', template.innerHTML.trim());
+        bindAutoRecalc();
+        scheduleRecalc();
+    }
+
+    function removeRow(button) {
+        const row = button.closest('.dynamic-row');
+        const parent = row.parentElement;
+        if (parent.querySelectorAll('.dynamic-row').length > 1) {
+            row.remove();
+        } else {
+            row.querySelectorAll('input').forEach(input => {
+                if (input.name.endsWith('_quantity')) {
+                    input.value = 1;
+                } else if (input.type === 'number') {
+                    input.value = '';
+                } else {
+                    input.value = '';
+                }
+            });
+        }
+        scheduleRecalc();
+    }
+
+    function bindAutoRecalc() {
+        document.querySelectorAll('#sim-form input').forEach(input => {
+            input.removeEventListener('change', scheduleRecalc);
+            input.addEventListener('change', scheduleRecalc);
+        });
+    }
+
+    bindAutoRecalc();
+</script>
+</body>
+</html>
