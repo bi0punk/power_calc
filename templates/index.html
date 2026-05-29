@@ -1,424 +1,573 @@
 <!doctype html>
 <html lang="es">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Simulador de baterías y paneles solares</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', filename='custom.css') }}" rel="stylesheet">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Electrico — Simulador Solar &amp; Baterías</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <link href="{{ url_for('static', filename='custom.css') }}" rel="stylesheet">
 </head>
 <body>
-<div class="container py-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="hero-card p-4">
-                <h1 class="mb-2">Simulador de baterías, cargas y paneles solares</h1>
-                <p class="mb-1">Configura bancos de baterías, electrodomésticos y paneles. La app calcula autonomía instantánea, consumo diario, balance solar y duración estimada del sistema.</p>
-                <p class="small text-secondary mb-0">Modelo práctico: útil para estimación técnica preliminar. En terreno, la autonomía real puede variar por temperatura, corriente de descarga, pérdidas adicionales, factor de potencia y edad de la batería.</p>
-            </div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-icon">&#9889;</div>
+    <div class="brand-name">Electri<span>co</span></div>
+  </div>
+  <div class="header-tags">
+    <span class="tag">Solar + Baterias</span>
+    <span class="tag">v2.0</span>
+    <span class="tag">Python Flask</span>
+  </div>
+</header>
+
+<div class="app-wrapper">
+
+  <form method="post" id="sim-form">
+  <div class="main-grid">
+
+    <!-- ── LEFT: Inputs ── -->
+    <div>
+
+      <!-- BATERIAS -->
+      <div class="card-tech mb-15">
+        <div class="card-head">
+          <h3><span class="dot-cyan"></span> Banco de Baterias</h3>
+          <button class="btn-add" type="button" onclick="addRow('battery')">+ Anadir</button>
         </div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:2fr 0.9fr 0.9fr 0.7fr 36px;gap:0.4rem;padding-bottom:0.5rem;margin-bottom:0.45rem;border-bottom:1px solid var(--border);">
+            <span class="field-label" style="margin:0">Nombre</span>
+            <span class="field-label" style="margin:0">Voltaje (V)</span>
+            <span class="field-label" style="margin:0">Ah</span>
+            <span class="field-label" style="margin:0">Cant.</span>
+            <span></span>
+          </div>
+          <div id="battery-rows">
+            {% for row in payload.batteries %}
+            <div class="drow drow-battery">
+              <input class="input-tech" name="battery_name" value="{{ row.name }}" placeholder="Ej: AGM 12V">
+              <input class="input-tech" type="number" step="0.01" name="battery_voltage" value="{{ row.voltage }}" placeholder="12">
+              <input class="input-tech" type="number" step="0.01" name="battery_ah" value="{{ row.ah }}" placeholder="100">
+              <input class="input-tech" type="number" step="1" min="1" name="battery_quantity" value="{{ row.quantity }}">
+              <button class="btn-del col-del" type="button" onclick="removeRow(this)">x</button>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- CARGAS -->
+      <div class="card-tech mb-15">
+        <div class="card-head">
+          <h3><span class="dot-yellow"></span> Cargas / Electrodomesticos</h3>
+          <button class="btn-add" type="button" onclick="addRow('appliance')">+ Anadir</button>
+        </div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:2fr 1fr 0.9fr 0.7fr 36px;gap:0.4rem;padding-bottom:0.5rem;margin-bottom:0.45rem;border-bottom:1px solid var(--border);">
+            <span class="field-label" style="margin:0">Equipo</span>
+            <span class="field-label" style="margin:0">Potencia (W)</span>
+            <span class="field-label" style="margin:0">Hrs/dia</span>
+            <span class="field-label" style="margin:0">Cant.</span>
+            <span></span>
+          </div>
+          <div id="appliance-rows">
+            {% for row in payload.appliances %}
+            <div class="drow drow-appliance">
+              <input class="input-tech" name="appliance_name" value="{{ row.name }}" placeholder="Ej: Refrigerador">
+              <input class="input-tech" type="number" step="0.01" name="appliance_power_w" value="{{ row.power_w }}" placeholder="100">
+              <input class="input-tech" type="number" step="0.01" name="appliance_hours_per_day" value="{{ row.hours_per_day }}" placeholder="8">
+              <input class="input-tech" type="number" step="1" min="1" name="appliance_quantity" value="{{ row.quantity }}">
+              <button class="btn-del col-del" type="button" onclick="removeRow(this)">x</button>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- PANELES -->
+      <div class="card-tech">
+        <div class="card-head">
+          <h3><span class="dot-green"></span> Paneles Solares</h3>
+          <button class="btn-add" type="button" onclick="addRow('panel')">+ Anadir</button>
+        </div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:2.5fr 1.1fr 0.75fr 36px;gap:0.4rem;padding-bottom:0.5rem;margin-bottom:0.45rem;border-bottom:1px solid var(--border);">
+            <span class="field-label" style="margin:0">Modelo</span>
+            <span class="field-label" style="margin:0">Potencia (W)</span>
+            <span class="field-label" style="margin:0">Cant.</span>
+            <span></span>
+          </div>
+          <div id="panel-rows">
+            {% for row in payload.panels %}
+            <div class="drow drow-panel">
+              <input class="input-tech" name="panel_name" value="{{ row.name }}" placeholder="Ej: Monocristalino 450W">
+              <input class="input-tech" type="number" step="0.01" name="panel_power_w" value="{{ row.power_w }}" placeholder="450">
+              <input class="input-tech" type="number" step="1" min="1" name="panel_quantity" value="{{ row.quantity }}">
+              <button class="btn-del col-del" type="button" onclick="removeRow(this)">x</button>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /left -->
+
+    <!-- ── RIGHT: Parametros ── -->
+    <div class="sticky-side">
+      <div class="card-tech">
+        <div class="card-head">
+          <h3><span class="dot-cyan"></span> Parametros del Sistema</h3>
+        </div>
+        <div class="card-body">
+
+          <div class="param-grid">
+            <div>
+              <label class="field-label">HSP / dia</label>
+              <input class="input-tech" type="number" step="0.01" min="0" name="peak_sun_hours" value="{{ payload.inputs.peak_sun_hours }}">
+            </div>
+            <div>
+              <label class="field-label">Efic. Solar (%)</label>
+              <input class="input-tech" type="number" step="0.01" min="0" max="100" name="solar_system_efficiency_pct" value="{{ payload.inputs.solar_system_efficiency_pct }}">
+            </div>
+            <div>
+              <label class="field-label">Efic. Inversor (%)</label>
+              <input class="input-tech" type="number" step="0.01" min="0" max="100" name="inverter_efficiency_pct" value="{{ payload.inputs.inverter_efficiency_pct }}">
+            </div>
+            <div>
+              <label class="field-label">Efic. Desc. Bat. (%)</label>
+              <input class="input-tech" type="number" step="0.01" min="0" max="100" name="battery_discharge_efficiency_pct" value="{{ payload.inputs.battery_discharge_efficiency_pct }}">
+            </div>
+            <div>
+              <label class="field-label">DOD Max (%)</label>
+              <input class="input-tech" type="number" step="0.01" min="0" max="100" name="max_depth_of_discharge_pct" value="{{ payload.inputs.max_depth_of_discharge_pct }}">
+            </div>
+            <div>
+              <label class="field-label">SOC Inicial (%)</label>
+              <input class="input-tech" type="number" step="0.01" min="0" max="100" name="initial_soc_pct" value="{{ payload.inputs.initial_soc_pct }}">
+            </div>
+          </div>
+
+          <!-- SOC visual bar -->
+          <div class="soc-wrap">
+            <div class="soc-label-row">
+              <span>SOC MIN {{ results.summary.min_soc_pct|num }}%</span>
+              <span>USABLE {{ results.summary.accessible_soc_pct|num }}%</span>
+              <span>SOC INIT {{ payload.inputs.initial_soc_pct|num }}%</span>
+            </div>
+            <div class="soc-track">
+              {% set soc_w = [results.summary.accessible_soc_pct, 100]|min %}
+              {% set soc_w = [soc_w, 0]|max %}
+              <div class="soc-fill" style="width:{{ soc_w }}%"></div>
+            </div>
+          </div>
+
+          <button class="btn-calc" type="submit" id="calc-btn">
+            <span id="calc-icon">&#9654;</span>
+            <span id="calc-label">Calcular Sistema</span>
+          </button>
+
+          <div style="margin-top:0.9rem;padding-top:0.9rem;border-top:1px solid var(--border);">
+            <div class="f-label" style="margin-bottom:0.45rem;">Nota del modelo</div>
+            <p style="font-size:0.74rem;color:var(--text-2);line-height:1.6;margin:0;">
+              Estimacion de ingenieria de primer nivel. Autonomia real varia por temperatura, envejecimiento de bateria, corriente de descarga alta y perdidas de cableado.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </div><!-- /right -->
+
+  </div><!-- /main-grid -->
+  </form>
+
+  <!-- ══ RESULTS ══ -->
+  <div class="section-divider"><h2>Resultados del Sistema</h2></div>
+
+  <!-- 4 metric tiles -->
+  <div class="metrics-grid">
+    <div class="metric-tile t-cyan">
+      <div class="metric-label">Banco Nominal</div>
+      <div class="metric-val">{{ results.summary.total_battery_nominal_wh|num }}<span class="metric-unit">Wh</span></div>
+      <div class="metric-sub">Energia bruta almacenada</div>
+    </div>
+    <div class="metric-tile t-green">
+      <div class="metric-label">Energia Util AC</div>
+      <div class="metric-val">{{ results.summary.total_battery_ac_usable_wh|num }}<span class="metric-unit">Wh</span></div>
+      <div class="metric-sub">Disponible en salida AC</div>
+    </div>
+    <div class="metric-tile t-yellow">
+      <div class="metric-label">Carga Instantanea</div>
+      <div class="metric-val">{{ results.summary.total_load_power_w|num }}<span class="metric-unit">W</span></div>
+      <div class="metric-sub">Potencia simultanea total</div>
+    </div>
+    {% if results.summary.daily_balance_wh >= 0 %}
+    <div class="metric-tile t-green">
+    {% else %}
+    <div class="metric-tile t-red">
+    {% endif %}
+      <div class="metric-label">Balance Diario</div>
+      <div class="metric-val">{{ results.summary.daily_balance_wh|num }}<span class="metric-unit">Wh/d</span></div>
+      <div class="metric-sub">Solar util - consumo diario</div>
+    </div>
+  </div>
+
+  <!-- KV + chart -->
+  <div class="results-grid">
+
+    <div class="card-tech">
+      <div class="card-head">
+        <h3><span class="dot-cyan"></span> Resumen Energetico</h3>
+        {% if results.summary.total_load_daily_wh <= 0 %}
+          <span class="sbadge sbadge-warn">Sin consumo</span>
+        {% elif results.summary.daily_balance_wh >= 0 %}
+          <span class="sbadge sbadge-ok">Sostenible</span>
+        {% else %}
+          <span class="sbadge sbadge-err">Deficit diario</span>
+        {% endif %}
+      </div>
+      <div class="card-body" style="padding:0;">
+        <table class="kv-table">
+          <tr>
+            <td class="k">SOC minimo permitido</td>
+            <td class="v">{{ results.summary.min_soc_pct|num }} %</td>
+          </tr>
+          <tr>
+            <td class="k">Fraccion SOC utilizable</td>
+            <td class="v">{{ results.summary.accessible_soc_pct|num }} %</td>
+          </tr>
+          <tr>
+            <td class="k">Autonomia solo bateria</td>
+            <td class="v" style="color:var(--cyan)">{{ results.summary.battery_only_hours|duration }}</td>
+          </tr>
+          <tr>
+            <td class="k">Autonomia por perfil diario</td>
+            <td class="v" style="color:var(--cyan)">
+              {% if results.summary.battery_only_days_by_profile is not none %}
+                {{ (results.summary.battery_only_days_by_profile * 24)|duration }}
+              {% else %}&#8212;{% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td class="k">Potencia total paneles</td>
+            <td class="v">{{ results.summary.total_panel_power_w|num }} W</td>
+          </tr>
+          <tr>
+            <td class="k">Generacion solar util</td>
+            <td class="v" style="color:var(--green)">{{ results.summary.solar_daily_useful_wh|num }} Wh/dia</td>
+          </tr>
+          <tr>
+            <td class="k">Consumo diario total</td>
+            <td class="v">{{ results.summary.total_load_daily_wh|num }} Wh/dia</td>
+          </tr>
+          <tr>
+            <td class="k">Sistema hibrido</td>
+            <td class="v" style="font-size:0.7rem;text-align:right;max-width:180px;white-space:normal;line-height:1.4;color:var(--text-2)">
+              {{ results.summary.solar_status }}
+            </td>
+          </tr>
+          <tr>
+            <td class="k">Autonomia hibrida</td>
+            <td class="v" style="color:var(--cyan)">
+              {% if results.summary.hybrid_days is not none %}
+                {{ (results.summary.hybrid_days * 24)|duration }}
+              {% else %}Sostenible / n/a{% endif %}
+            </td>
+          </tr>
+        </table>
+      </div>
     </div>
 
-    <form method="post" id="sim-form">
-        <div class="row g-4">
-            <div class="col-lg-7">
-                <div class="section-card p-3 mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h3 class="mb-0">Baterías</h3>
-                        <button class="btn btn-primary btn-sm" type="button" onclick="addRow('battery')">Agregar batería</button>
-                    </div>
-                    <div id="battery-rows">
-                        {% for row in payload.batteries %}
-                        <div class="row g-2 align-items-end dynamic-row mb-2">
-                            <div class="col-md-4">
-                                <label class="form-label">Nombre</label>
-                                <input class="form-control" name="battery_name" value="{{ row.name }}">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Voltaje</label>
-                                <input class="form-control" type="number" step="0.01" name="battery_voltage" value="{{ row.voltage }}">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Ah</label>
-                                <input class="form-control" type="number" step="0.01" name="battery_ah" value="{{ row.ah }}">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Cantidad</label>
-                                <input class="form-control" type="number" step="1" min="1" name="battery_quantity" value="{{ row.quantity }}">
-                            </div>
-                            <div class="col-md-2 d-grid">
-                                <button class="btn btn-outline-danger" type="button" onclick="removeRow(this)">Quitar</button>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="section-card p-3 mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h3 class="mb-0">Electrodomésticos / cargas</h3>
-                        <button class="btn btn-primary btn-sm" type="button" onclick="addRow('appliance')">Agregar equipo</button>
-                    </div>
-                    <div id="appliance-rows">
-                        {% for row in payload.appliances %}
-                        <div class="row g-2 align-items-end dynamic-row mb-2">
-                            <div class="col-md-4">
-                                <label class="form-label">Nombre</label>
-                                <input class="form-control" name="appliance_name" value="{{ row.name }}">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Potencia (W)</label>
-                                <input class="form-control" type="number" step="0.01" name="appliance_power_w" value="{{ row.power_w }}">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Horas/día</label>
-                                <input class="form-control" type="number" step="0.01" name="appliance_hours_per_day" value="{{ row.hours_per_day }}">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Cantidad</label>
-                                <input class="form-control" type="number" step="1" min="1" name="appliance_quantity" value="{{ row.quantity }}">
-                            </div>
-                            <div class="col-md-2 d-grid">
-                                <button class="btn btn-outline-danger" type="button" onclick="removeRow(this)">Quitar</button>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="section-card p-3 mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h3 class="mb-0">Paneles solares</h3>
-                        <button class="btn btn-primary btn-sm" type="button" onclick="addRow('panel')">Agregar panel</button>
-                    </div>
-                    <div id="panel-rows">
-                        {% for row in payload.panels %}
-                        <div class="row g-2 align-items-end dynamic-row mb-2">
-                            <div class="col-md-5">
-                                <label class="form-label">Nombre</label>
-                                <input class="form-control" name="panel_name" value="{{ row.name }}">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Potencia (W)</label>
-                                <input class="form-control" type="number" step="0.01" name="panel_power_w" value="{{ row.power_w }}">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Cantidad</label>
-                                <input class="form-control" type="number" step="1" min="1" name="panel_quantity" value="{{ row.quantity }}">
-                            </div>
-                            <div class="col-md-2 d-grid">
-                                <button class="btn btn-outline-danger" type="button" onclick="removeRow(this)">Quitar</button>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-5">
-                <div class="section-card p-3 mb-4 sticky-top-approx">
-                    <h3 class="mb-3">Parámetros del sistema</h3>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Horas solares pico / día</label>
-                            <input class="form-control" type="number" step="0.01" min="0" name="peak_sun_hours" value="{{ payload.inputs.peak_sun_hours }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Eficiencia solar (%)</label>
-                            <input class="form-control" type="number" step="0.01" min="0" max="100" name="solar_system_efficiency_pct" value="{{ payload.inputs.solar_system_efficiency_pct }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Eficiencia inversor (%)</label>
-                            <input class="form-control" type="number" step="0.01" min="0" max="100" name="inverter_efficiency_pct" value="{{ payload.inputs.inverter_efficiency_pct }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Eficiencia descarga batería (%)</label>
-                            <input class="form-control" type="number" step="0.01" min="0" max="100" name="battery_discharge_efficiency_pct" value="{{ payload.inputs.battery_discharge_efficiency_pct }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Profundidad máxima de descarga (%)</label>
-                            <input class="form-control" type="number" step="0.01" min="0" max="100" name="max_depth_of_discharge_pct" value="{{ payload.inputs.max_depth_of_discharge_pct }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Estado de carga inicial (%)</label>
-                            <input class="form-control" type="number" step="0.01" min="0" max="100" name="initial_soc_pct" value="{{ payload.inputs.initial_soc_pct }}">
-                        </div>
-                    </div>
-                    <div class="d-grid mt-3">
-                        <button class="btn btn-success btn-lg" type="submit">Calcular sistema</button>
-                    </div>
-                </div>
-            </div>
+    <div class="card-tech">
+      <div class="card-head">
+        <h3><span class="dot-yellow"></span> Consumo por Equipo (Wh/dia)</h3>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap">
+          <canvas id="load-chart"></canvas>
         </div>
-    </form>
-
-    <div class="row g-3 my-2">
-        <div class="col-md-3">
-            <div class="metric-card p-3">
-                <div class="metric-title">Banco nominal</div>
-                <div class="metric-value">{{ results.summary.total_battery_nominal_wh|num }} Wh</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="metric-card p-3">
-                <div class="metric-title">Energía útil AC</div>
-                <div class="metric-value">{{ results.summary.total_battery_ac_usable_wh|num }} Wh</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="metric-card p-3">
-                <div class="metric-title">Carga instantánea total</div>
-                <div class="metric-value">{{ results.summary.total_load_power_w|num }} W</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="metric-card p-3">
-                <div class="metric-title">Consumo diario total</div>
-                <div class="metric-value">{{ results.summary.total_load_daily_wh|num }} Wh/día</div>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <div class="row g-4 mt-1">
-        <div class="col-lg-7">
-            <div class="section-card p-3 mb-4">
-                <h3 class="mb-3">Resultados principales</h3>
-                <div class="table-responsive">
-                    <table class="table align-middle">
-                        <tbody>
-                        <tr>
-                            <th>SOC mínimo permitido</th>
-                            <td>{{ results.summary.min_soc_pct|num }} %</td>
-                        </tr>
-                        <tr>
-                            <th>Fracción SOC utilizable</th>
-                            <td>{{ results.summary.accessible_soc_pct|num }} %</td>
-                        </tr>
-                        <tr>
-                            <th>Autonomía solo batería</th>
-                            <td>{{ results.summary.battery_only_hours|duration }}</td>
-                        </tr>
-                        <tr>
-                            <th>Autonomía solo batería según perfil diario</th>
-                            <td>
-                                {% if results.summary.battery_only_days_by_profile is not none %}
-                                    {{ (results.summary.battery_only_days_by_profile * 24)|duration }}
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Potencia total paneles</th>
-                            <td>{{ results.summary.total_panel_power_w|num }} W</td>
-                        </tr>
-                        <tr>
-                            <th>Generación solar útil estimada</th>
-                            <td>{{ results.summary.solar_daily_useful_wh|num }} Wh/día</td>
-                        </tr>
-                        <tr>
-                            <th>Balance diario</th>
-                            <td>{{ results.summary.daily_balance_wh|num }} Wh/día</td>
-                        </tr>
-                        <tr>
-                            <th>Estado del sistema híbrido</th>
-                            <td>{{ results.summary.solar_status }}</td>
-                        </tr>
-                        <tr>
-                            <th>Autonomía híbrida estimada</th>
-                            <td>
-                                {% if results.summary.hybrid_days is not none %}
-                                    {{ (results.summary.hybrid_days * 24)|duration }}
-                                {% else %}
-                                    Sostenible / no aplica
-                                {% endif %}
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+  </div><!-- /results-grid -->
 
-            <div class="section-card p-3 mb-4">
-                <h3 class="mb-3">Duración por equipo con el sistema actual</h3>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead>
-                        <tr>
-                            <th>Equipo</th>
-                            <th>Potencia total</th>
-                            <th>Consumo diario</th>
-                            <th>Solo batería</th>
-                            <th>Con solar</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for row in results.appliance_rows %}
-                        <tr>
-                            <td>{{ row.name }} ×{{ row.quantity }}</td>
-                            <td>{{ row.instant_power_w|num }} W</td>
-                            <td>{{ row.daily_wh|num }} Wh/día</td>
-                            <td>{{ row.battery_only_hours|duration }}</td>
-                            <td>{{ row.solar_runtime }}</td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center text-secondary">No hay equipos válidos para analizar.</td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+  <!-- Per-appliance table -->
+  <div class="section-divider" style="margin-top:2rem;"><h2>Analisis por Equipo</h2></div>
 
-        <div class="col-lg-5">
-            <div class="section-card p-3 mb-4">
-                <h3 class="mb-3">Fórmulas usadas</h3>
-                <ul class="mb-0 formula-list">
-                    <li><strong>Banco nominal:</strong> {{ results.formulas.battery_nominal_wh }}</li>
-                    <li><strong>Energía útil AC:</strong> {{ results.formulas.battery_usable_wh }}</li>
-                    <li><strong>Consumo diario:</strong> {{ results.formulas.load_daily_wh }}</li>
-                    <li><strong>Solar diario útil:</strong> {{ results.formulas.solar_daily_wh }}</li>
-                    <li><strong>Autonomía por horas:</strong> {{ results.formulas.battery_hours }}</li>
-                    <li><strong>Autonomía híbrida:</strong> {{ results.formulas.hybrid_days }}</li>
-                </ul>
-            </div>
-
-            <div class="section-card p-3 mb-4">
-                <h3 class="mb-3">Advertencias técnicas</h3>
-                <ul class="mb-0 formula-list">
-                    {% for warn in results.warnings %}
-                        <li>{{ warn }}</li>
-                    {% else %}
-                        <li>Sin advertencias relevantes.</li>
-                    {% endfor %}
-                </ul>
-            </div>
-
-            <div class="section-card p-3 mb-4">
-                <h3 class="mb-3">Lectura rápida</h3>
-                <p class="mb-2">Si quieres saber cuánto dura un equipo, mira primero la columna <strong>Solo batería</strong>. Eso supone que la energía sale desde el banco y que la carga está activa con la potencia indicada.</p>
-                <p class="mb-2">Si quieres saber si el sistema se sostiene con paneles, revisa <strong>Balance diario</strong>. Si es positivo, en promedio diario el sistema puede mantenerse.</p>
-                <p class="mb-0">Para equipos cíclicos como refrigeradores, conviene usar una potencia media realista y horas por día acordes al ciclo del compresor.</p>
-            </div>
-        </div>
+  <div class="card-tech mb-15">
+    <div class="card-body" style="padding:0;">
+      <table class="table-tech">
+        <thead>
+          <tr>
+            <th>Equipo</th>
+            <th class="num">Pot. Total</th>
+            <th class="num">Consumo Diario</th>
+            <th class="num">Solo Bateria</th>
+            <th>Con Solar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in results.appliance_rows %}
+          <tr>
+            <td>
+              {{ row.name }}
+              <span class="qty-badge">x{{ row.quantity }}</span>
+            </td>
+            <td class="num">{{ row.instant_power_w|num }} W</td>
+            <td class="num">{{ row.daily_wh|num }} Wh/d</td>
+            <td class="num" style="color:var(--cyan)">{{ row.battery_only_hours|duration }}</td>
+            <td>
+              {% if row.solar_runtime == 'Sostenible en promedio diario' %}
+                <span class="sbadge sbadge-ok">Sostenible</span>
+              {% elif row.solar_runtime == 'Sin horas/dia definidas' or row.solar_runtime == 'Sin horas/día definidas' %}
+                <span class="sbadge sbadge-warn">Sin datos</span>
+              {% else %}
+                <span style="font-family:var(--mono);font-size:0.77rem;color:var(--yellow)">{{ row.solar_runtime }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" style="text-align:center;color:var(--text-3);padding:1.5rem;font-family:var(--mono);font-size:0.78rem;">
+              Sin equipos validos configurados
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-</div>
+  </div>
 
+  <!-- Formulas + Warnings + Tips -->
+  <div class="results-grid">
+
+    <div class="card-tech">
+      <div class="card-head">
+        <h3><span class="dot-cyan"></span> Formulas del Modelo</h3>
+      </div>
+      <div class="card-body">
+        <div class="formula-item">
+          <div class="f-label">Banco nominal</div>
+          <div class="f-eq">{{ results.formulas.battery_nominal_wh }}</div>
+        </div>
+        <div class="formula-item">
+          <div class="f-label">Energia util AC</div>
+          <div class="f-eq">{{ results.formulas.battery_usable_wh }}</div>
+        </div>
+        <div class="formula-item">
+          <div class="f-label">Consumo diario</div>
+          <div class="f-eq">{{ results.formulas.load_daily_wh }}</div>
+        </div>
+        <div class="formula-item">
+          <div class="f-label">Solar diario util</div>
+          <div class="f-eq">{{ results.formulas.solar_daily_wh }}</div>
+        </div>
+        <div class="formula-item">
+          <div class="f-label">Autonomia horas</div>
+          <div class="f-eq">{{ results.formulas.battery_hours }}</div>
+        </div>
+        <div class="formula-item">
+          <div class="f-label">Autonomia hibrida</div>
+          <div class="f-eq">{{ results.formulas.hybrid_days }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-tech mb-15">
+        <div class="card-head">
+          <h3><span class="dot-yellow"></span> Alertas Tecnicas</h3>
+          <span class="tag">{{ results.warnings|length }} aviso(s)</span>
+        </div>
+        <div class="card-body">
+          <ul class="warn-list">
+            {% for warn in results.warnings %}
+              <li><span style="flex-shrink:0">&#9888;</span> {{ warn }}</li>
+            {% else %}
+              <li class="ok"><span style="flex-shrink:0">&#10003;</span> Sin advertencias relevantes en la configuracion actual.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <div class="card-tech">
+        <div class="card-head">
+          <h3><span class="dot-green"></span> Guia de Lectura</h3>
+        </div>
+        <div class="card-body">
+          <div class="quick-tip">
+            <strong style="color:var(--cyan)">Autonomia solo bateria</strong> — tiempo que el banco sostiene toda la carga activa sin solar ni recarga.
+          </div>
+          <div class="quick-tip">
+            <strong style="color:var(--green)">Balance diario positivo</strong> — la solar cubre o supera el consumo promedio diario. Sistema sostenible.
+          </div>
+          <div class="quick-tip">
+            <strong style="color:var(--yellow)">Equipos ciclicos</strong> — para neveras y motores usa potencia media del ciclo y horas reales de uso.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /app-wrapper -->
+
+<!-- ── Templates dinamicos ── -->
 <template id="battery-template">
-    <div class="row g-2 align-items-end dynamic-row mb-2">
-        <div class="col-md-4">
-            <label class="form-label">Nombre</label>
-            <input class="form-control" name="battery_name" value="Batería nueva">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Voltaje</label>
-            <input class="form-control" type="number" step="0.01" name="battery_voltage" value="12">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Ah</label>
-            <input class="form-control" type="number" step="0.01" name="battery_ah" value="100">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Cantidad</label>
-            <input class="form-control" type="number" step="1" min="1" name="battery_quantity" value="1">
-        </div>
-        <div class="col-md-2 d-grid">
-            <button class="btn btn-outline-danger" type="button" onclick="removeRow(this)">Quitar</button>
-        </div>
-    </div>
+  <div class="drow drow-battery">
+    <input class="input-tech" name="battery_name" value="Bateria nueva">
+    <input class="input-tech" type="number" step="0.01" name="battery_voltage" value="12">
+    <input class="input-tech" type="number" step="0.01" name="battery_ah" value="100">
+    <input class="input-tech" type="number" step="1" min="1" name="battery_quantity" value="1">
+    <button class="btn-del col-del" type="button" onclick="removeRow(this)">x</button>
+  </div>
 </template>
 
 <template id="appliance-template">
-    <div class="row g-2 align-items-end dynamic-row mb-2">
-        <div class="col-md-4">
-            <label class="form-label">Nombre</label>
-            <input class="form-control" name="appliance_name" value="Equipo nuevo">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Potencia (W)</label>
-            <input class="form-control" type="number" step="0.01" name="appliance_power_w" value="100">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Horas/día</label>
-            <input class="form-control" type="number" step="0.01" name="appliance_hours_per_day" value="8">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Cantidad</label>
-            <input class="form-control" type="number" step="1" min="1" name="appliance_quantity" value="1">
-        </div>
-        <div class="col-md-2 d-grid">
-            <button class="btn btn-outline-danger" type="button" onclick="removeRow(this)">Quitar</button>
-        </div>
-    </div>
+  <div class="drow drow-appliance">
+    <input class="input-tech" name="appliance_name" value="Equipo nuevo">
+    <input class="input-tech" type="number" step="0.01" name="appliance_power_w" value="100">
+    <input class="input-tech" type="number" step="0.01" name="appliance_hours_per_day" value="8">
+    <input class="input-tech" type="number" step="1" min="1" name="appliance_quantity" value="1">
+    <button class="btn-del col-del" type="button" onclick="removeRow(this)">x</button>
+  </div>
 </template>
 
 <template id="panel-template">
-    <div class="row g-2 align-items-end dynamic-row mb-2">
-        <div class="col-md-5">
-            <label class="form-label">Nombre</label>
-            <input class="form-control" name="panel_name" value="Panel nuevo">
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Potencia (W)</label>
-            <input class="form-control" type="number" step="0.01" name="panel_power_w" value="450">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Cantidad</label>
-            <input class="form-control" type="number" step="1" min="1" name="panel_quantity" value="1">
-        </div>
-        <div class="col-md-2 d-grid">
-            <button class="btn btn-outline-danger" type="button" onclick="removeRow(this)">Quitar</button>
-        </div>
-    </div>
+  <div class="drow drow-panel">
+    <input class="input-tech" name="panel_name" value="Panel nuevo">
+    <input class="input-tech" type="number" step="0.01" name="panel_power_w" value="450">
+    <input class="input-tech" type="number" step="1" min="1" name="panel_quantity" value="1">
+    <button class="btn-del col-del" type="button" onclick="removeRow(this)">x</button>
+  </div>
 </template>
 
 <script>
-    let calcTimer = null;
+  let calcTimer = null;
 
-    function scheduleRecalc() {
-        clearTimeout(calcTimer);
-        calcTimer = setTimeout(() => {
-            document.getElementById('sim-form').submit();
-        }, 500);
-    }
+  function scheduleRecalc() {
+    clearTimeout(calcTimer);
+    calcTimer = setTimeout(function () {
+      var btn = document.getElementById('calc-btn');
+      var lbl = document.getElementById('calc-label');
+      var ico = document.getElementById('calc-icon');
+      btn.disabled = true;
+      lbl.textContent = 'Calculando...';
+      ico.classList.add('spin');
+      document.getElementById('sim-form').submit();
+    }, 600);
+  }
 
-    function addRow(kind) {
-        const template = document.getElementById(`${kind}-template`);
-        const container = document.getElementById(`${kind}-rows`);
-        container.insertAdjacentHTML('beforeend', template.innerHTML.trim());
-        bindAutoRecalc();
-        scheduleRecalc();
-    }
-
-    function removeRow(button) {
-        const row = button.closest('.dynamic-row');
-        const parent = row.parentElement;
-        if (parent.querySelectorAll('.dynamic-row').length > 1) {
-            row.remove();
-        } else {
-            row.querySelectorAll('input').forEach(input => {
-                if (input.name.endsWith('_quantity')) {
-                    input.value = 1;
-                } else if (input.type === 'number') {
-                    input.value = '';
-                } else {
-                    input.value = '';
-                }
-            });
-        }
-        scheduleRecalc();
-    }
-
-    function bindAutoRecalc() {
-        document.querySelectorAll('#sim-form input').forEach(input => {
-            input.removeEventListener('change', scheduleRecalc);
-            input.addEventListener('change', scheduleRecalc);
-        });
-    }
-
+  function addRow(kind) {
+    var tpl = document.getElementById(kind + '-template');
+    var container = document.getElementById(kind + '-rows');
+    container.insertAdjacentHTML('beforeend', tpl.innerHTML.trim());
     bindAutoRecalc();
+    scheduleRecalc();
+  }
+
+  function removeRow(btn) {
+    var row = btn.closest('.drow');
+    var parent = row.parentElement;
+    if (parent.querySelectorAll('.drow').length > 1) {
+      row.remove();
+    } else {
+      row.querySelectorAll('input').forEach(function (inp) {
+        if (inp.name.endsWith('_quantity')) { inp.value = 1; }
+        else { inp.value = ''; }
+      });
+    }
+    scheduleRecalc();
+  }
+
+  function bindAutoRecalc() {
+    document.querySelectorAll('#sim-form input').forEach(function (inp) {
+      inp.removeEventListener('change', scheduleRecalc);
+      inp.addEventListener('change', scheduleRecalc);
+    });
+  }
+
+  bindAutoRecalc();
+
+  // Chart
+  (function () {
+    var canvas = document.getElementById('load-chart');
+    if (!canvas) return;
+
+    var labels = [{% for row in results.appliance_rows %}"{{ row.name }} x{{ row.quantity }}"{% if not loop.last %},{% endif %}{% endfor %}];
+
+    var solarWh = {{ results.summary.solar_daily_useful_wh }};
+
+    var solar = [{% for row in results.appliance_rows %}{{ [results.summary.solar_daily_useful_wh, row.daily_wh]|min|round(2) }}{% if not loop.last %},{% endif %}{% endfor %}];
+    var battery = [{% for row in results.appliance_rows %}{{ [row.daily_wh - results.summary.solar_daily_useful_wh, 0]|max|round(2) }}{% if not loop.last %},{% endif %}{% endfor %}];
+
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Solar',
+            data: solar,
+            backgroundColor: 'rgba(0,229,160,0.72)',
+            borderRadius: 4,
+            borderSkipped: false
+          },
+          {
+            label: 'Bateria',
+            data: battery,
+            backgroundColor: 'rgba(0,212,255,0.6)',
+            borderRadius: 4,
+            borderSkipped: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: {
+              color: '#6a8dab',
+              font: { family: "'JetBrains Mono', monospace", size: 11 },
+              boxWidth: 12, boxHeight: 12, padding: 14
+            }
+          },
+          tooltip: {
+            backgroundColor: '#111b2b',
+            borderColor: '#1e2d42',
+            borderWidth: 1,
+            titleColor: '#dce9f5',
+            bodyColor: '#6a8dab',
+            titleFont: { family: "'JetBrains Mono', monospace", size: 11 },
+            bodyFont: { family: "'JetBrains Mono', monospace", size: 11 },
+            callbacks: {
+              label: function(ctx) { return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y.toLocaleString('es') + ' Wh/d'; }
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            ticks: { color: '#344d62', font: { family: "'JetBrains Mono', monospace", size: 10 }, maxRotation: 25 },
+            grid: { color: 'rgba(30,45,66,0.5)' }
+          },
+          y: {
+            stacked: true,
+            ticks: {
+              color: '#344d62',
+              font: { family: "'JetBrains Mono', monospace", size: 10 },
+              callback: function(v) { return v.toLocaleString('es') + ' Wh'; }
+            },
+            grid: { color: 'rgba(30,45,66,0.5)' }
+          }
+        }
+      }
+    });
+  })();
 </script>
 </body>
 </html>
