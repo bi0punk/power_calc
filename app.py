@@ -3,10 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Any
 
+import os
 from flask import Flask, render_template, request
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'battery-sim-local-dev'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(24).hex())
 
 
 @dataclass
@@ -320,4 +321,4 @@ def index():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=os.getenv('DEBUG', 'false').lower() == 'true')
