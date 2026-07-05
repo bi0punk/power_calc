@@ -1,44 +1,106 @@
 # Electrico v2 — Simulador Solar & Baterías
 
-Aplicación Flask con interfaz técnica oscura para modelar sistemas fotovoltaicos off-grid / híbridos.
+Aplicación Flask con interfaz técnica oscura para modelar sistemas fotovoltaicos off-grid / híbridos. Calcula energía nominal, consumo, generación solar, balance energético y autonomía.
 
-## Qué calcula
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue)](https://python.org)
+[![CI](https://github.com/tu-usuario/power_calc/actions/workflows/ci.yml/badge.svg)](https://github.com/tu-usuario/power_calc/actions/workflows/ci.yml)
 
-- Energía nominal y útil (AC) del banco de baterías
-- Consumo instantáneo y diario por carga
+## Tabla de Contenidos
+
+- [Características](#características)
+- [Stack](#stack)
+- [Arquitectura](#arquitectura)
+- [Requisitos](#requisitos)
+- [Instalación](#instalación)
+- [Uso](#uso)
+- [Tests](#tests)
+- [Configuración](#configuración)
+- [CI](#ci)
+- [Fórmulas](#fórmulas)
+- [Limitaciones / Roadmap](#limitaciones--roadmap)
+- [Licencia](#licencia)
+
+## Características
+
+- Cálculo de energía nominal y útil (AC) del banco de baterías
+- Consumo instantáneo y diario por carga/equipo
 - Generación solar útil diaria estimada (HSP × eficiencias)
 - Balance energético diario solar vs. consumo
 - Autonomía: solo batería, por perfil diario, híbrida solar+batería
-- Análisis individual por equipo
+- Interfaz dark técnica con Chart.js, badges de estado y diseño responsivo
 
-## Novedades v2
+## Stack
 
-- Interfaz dark técnica (tema oscuro con acentos cyan/verde)
-- Tipografía monoespaciada JetBrains Mono para métricas
-- 4 tarjetas de métricas principales con indicador de color
-- Gráfico de barras apiladas (Chart.js) consumo solar vs. batería por equipo
-- Barra visual de estado SOC (utilizable / mínimo)
-- Badges de estado del sistema (Sostenible / Déficit / Sin consumo)
-- Diseño responsivo con sidebar sticky en desktop
-- Spinner animado en botón Calcular durante submit
+- Python 3.10+, Flask 3.1, Chart.js, Bootstrap, JetBrains Mono
+
+## Arquitectura
+
+```
+power_calc/
+├── app.py                 # Lógica de cálculo + rutas Flask
+├── templates/
+│   └── index.html         # Interfaz de usuario
+├── static/
+│   ├── css/
+│   └── js/
+├── data/                  # Datos de ejemplo
+├── tests/
+├── requirements.txt
+├── pyproject.toml
+├── run.sh
+├── .env.example
+└── README.md
+```
 
 ## Requisitos
 
 - Python 3.10+
-- Flask 3.1.0
 
-## Instalación y uso
+## Instalación
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+git clone https://github.com/tu-usuario/power_calc.git
+cd power_calc
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+## Uso
+
+```bash
 python app.py
 ```
 
-Abrir: http://127.0.0.1:5000
+Abrir `http://127.0.0.1:5000`. Ingresar datos de baterías, consumos y paneles solares, y presionar "Calcular" para ver los resultados.
 
-## Fórmulas principales
+```bash
+# O usando run.sh
+bash run.sh
+```
+
+## Tests
+
+```bash
+pip install pytest ruff
+pytest -q
+ruff check .
+```
+
+## Configuración
+
+Variables de entorno (ver `.env.example`):
+
+| Variable     | Default          | Descripción                     |
+|--------------|------------------|---------------------------------|
+| `SECRET_KEY` | (auto-generada)  | Clave secreta Flask             |
+| `DEBUG`      | `false`          | Modo debug                      |
+
+## CI
+
+GitHub Actions ejecuta ruff lint + pytest en cada push y PR.
+
+## Fórmulas
 
 - `Wh_banco = Voltaje × Ah × Cantidad`
 - `SOC_min = 100 − DOD`
@@ -48,8 +110,14 @@ Abrir: http://127.0.0.1:5000
 - `Autonomia_h = Wh_util_AC / W_carga_total`
 - `Autonomia_hibrida_dias = Wh_util_AC / |deficit_diario|`
 
-## Nota técnica
+## Limitaciones / Roadmap
 
-Modelo de estimación preliminar. La autonomía real puede ser menor por:
-temperatura de batería, envejecimiento, corrientes de descarga altas,
-pérdidas en cableado, y comportamiento cíclico de compresores/motores.
+- [ ] Soporte para múltiples bancos de baterías con diferentes químicas
+- [ ] Curvas de descarga personalizadas (Peukert)
+- [ ] Simulación horaria con perfil de carga variable
+- [ ] Exportación de resultados a PDF
+- [ ] Almacenamiento de configuraciones (presets)
+
+## Licencia
+
+MIT
