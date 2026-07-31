@@ -7,7 +7,9 @@ name = "power_calc"
 version = "1.0.0"
 description = "Flask calculator application"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "Flask==3.1.0",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0", "ruff>=0.6.0"]
