@@ -4,7 +4,7 @@ Aplicación Flask con interfaz técnica oscura para modelar sistemas fotovoltaic
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue)](https://python.org)
-[![CI](https://github.com/tu-usuario/power_calc/actions/workflows/ci.yml/badge.svg)](https://github.com/tu-usuario/power_calc/actions/workflows/ci.yml)
+[![CI](https://github.com/bi0punk/power_calc/actions/workflows/ci.yml/badge.svg)](https://github.com/bi0punk/power_calc/actions/workflows/ci.yml)
 
 ## Tabla de Contenidos
 
@@ -60,7 +60,7 @@ power_calc/
 ## Instalación
 
 ```bash
-git clone https://github.com/tu-usuario/power_calc.git
+git clone https://github.com/bi0punk/power_calc.git
 cd power_calc
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
