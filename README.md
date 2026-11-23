@@ -112,6 +112,8 @@ Variables de entorno (ver `.env.example`):
 | Variable | Default | Descripción |
 |---|---|---|
 | `SECRET_KEY` | (auto-generada) | Clave secreta Flask |
+| `HOST` | `127.0.0.1` | Host de escucha del servidor de desarrollo |
+| `PORT` | `5000` | Puerto de escucha |
 | `DEBUG` | `false` | Modo debug (`true`/`false`) |
 
 ## Tests / CI
